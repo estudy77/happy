@@ -1,0 +1,189 @@
+import React, { useState } from 'react';
+import { Search, Image, AlertCircle, Loader2 } from 'lucide-react';
+
+// 이미지 아이템 타입
+interface ImageItem {
+  imageId: string;
+  imageUrl: string;
+  imageName: string;
+  uploadDate: string;
+}
+
+// Mock API 함수 (실제로는 ImageList.ts의 getImageList를 import해서 사용)
+const mockGetImageList = async (issueNo: string) => {
+  // 실제 환경에서는 이 부분을 주석 처리하고 실제 API 함수를 사용하세요
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  if (!issueNo) {
+    return { list: [], total: 0 };
+  }
+  
+  // Mock 데이터
+  return {
+    list: [
+      {
+        imageId: '1',
+        imageUrl: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400',
+        imageName: `${issueNo}_image_1.jpg`,
+        uploadDate: '2024-01-15'
+      },
+      {
+        imageId: '2',
+        imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400',
+        imageName: `${issueNo}_image_2.jpg`,
+        uploadDate: '2024-01-15'
+      },
+      {
+        imageId: '3',
+        imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400',
+        imageName: `${issueNo}_image_3.jpg`,
+        uploadDate: '2024-01-16'
+      }
+    ],
+    total: 3
+  };
+};
+
+export default function ImageListViewer() {
+  const [issueNo, setIssueNo] = useState('');
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [searched, setSearched] = useState(false);
+
+  const handleSearch = async () => {
+    if (!issueNo.trim()) {
+      setError('발행번호를 입력해주세요.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSearched(true);
+
+    try {
+      // 실제 환경에서는 아래와 같이 사용하세요:
+      // import { getImageList } from './api/ImageList';
+      // const response = await getImageList(issueNo);
+      
+      const response = await mockGetImageList(issueNo);
+      setImages(response.list);
+      
+      if (response.list.length === 0) {
+        setError('해당 발행번호에 대한 이미지가 없습니다.');
+      }
+    } catch (err) {
+      setError('이미지 목록을 불러오는데 실패했습니다.');
+      setImages([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* 헤더 */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">이미지 목록 조회</h1>
+          
+          {/* 검색 영역 */}
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={issueNo}
+              onChange={(e) => setIssueNo(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="발행번호를 입력하세요"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  조회중
+                </>
+              ) : (
+                <>
+                  <Search className="w-5 h-5" />
+                  조회
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* 에러 메시지 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* 결과 헤더 */}
+        {searched && !loading && images.length > 0 && (
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-700">
+              총 {images.length}개의 이미지
+            </h2>
+            <span className="text-sm text-gray-500">발행번호: {issueNo}</span>
+          </div>
+        )}
+
+        {/* 이미지 그리드 */}
+        {!loading && images.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {images.map((image) => (
+              <div
+                key={image.imageId}
+                className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+              >
+                <div className="aspect-video bg-gray-100 relative overflow-hidden">
+                  <img
+                    src={image.imageUrl}
+                    alt={image.imageName}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23e5e7eb" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="16"%3E이미지 로드 실패%3C/text%3E%3C/svg%3E';
+                    }}
+                  />
+                </div>
+                <div className="p-4">
+                  <div className="flex items-start gap-2 mb-2">
+                    <Image className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
+                    <p className="text-sm font-medium text-gray-800 break-all">
+                      {image.imageName}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    업로드: {image.uploadDate}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 검색 전 안내 */}
+        {!searched && !loading && (
+          <div className="text-center py-16">
+            <Image className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">발행번호를 입력하고 조회 버튼을 눌러주세요.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
